@@ -1,4 +1,5 @@
 Seega: Ancient Egyptian Abstract Strategy Game
+
 Seega is an authentic, web-based adaptation of the ancient Egyptian abstract strategy game, a historical two-player board game played since at least the 19th century. This project faithfully recreates the classic 5x5 Khamsáwee ruleset, providing an engaging digital experience for players and developers interested in cultural games and game AI.
 
 Overview
