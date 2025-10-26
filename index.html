@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Seega</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        html, body { height: 100%; }
+        body {
+            background: linear-gradient(135deg, #e0e7ef 0%, #b8c6db 100%);
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        header {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 36px 0 20px 0;
+            text-align: center;
+            border-radius: 0 0 36px 36px;
+            box-shadow: 0 6px 32px #0002;
+            background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        header::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, #1a1a2e99 60%, #1a1a2eff 100%);
+            z-index: 0;
+        }
+        header > * { position: relative; z-index: 1; }
+        header h1 {
+            font-size: 2.8rem;
+            margin: 0 0 8px 0;
+            letter-spacing: 2px;
+            font-family: 'Segoe UI Semibold', Arial, sans-serif;
+            text-shadow: 0 2px 8px #0008;
+        }
+        header p {
+            font-size: 1.2rem;
+            margin: 0;
+            color: #ffe066;
+            text-shadow: 0 2px 8px #0008;
+        }
+        #main-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 48px;
+            margin: 36px auto 0 auto;
+            max-width: 1200px;
+            padding: 0 2vw;
+        }
+        #game-container {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+            padding: 44px 54px 36px 54px;
+            min-width: 520px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #turn-indicator {
+            font-size: 22px;
+            margin-bottom: 18px;
+            text-align: center;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        #winner-indicator {
+            font-size: 24px;
+            margin-bottom: 18px;
+            text-align: center;
+            font-weight: bold;
+            color: #f44336;
+            display: none;
+        }
+        #seega-board {
+            display: grid;
+            grid-template-columns: repeat(5, 84px);
+            grid-template-rows: repeat(5, 84px);
+            gap: 10px;
+            margin-bottom: 24px;
+            justify-content: center;
+        }
+        .cell {
+            width: 84px;
+            height: 84px;
+            background: linear-gradient(135deg, #e2c799 60%, #f7e6c4 100%);
+            border: 3px solid #8b5c2b;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 44px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s, border 0.2s;
+            overflow: visible;
+        }
+        .cell.selected {
+            background: #ffe066;
+            border: 3px solid #f7b801;
+            box-shadow: 0 0 0 4px #ffe06655;
+        }
+        .cell.possible {
+            background: #f7f7f7;
+        }
+        .dot {
+            width: 18px;
+            height: 18px;
+            background: #444;
+            border-radius: 50%;
+            opacity: 0.18;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%,-50%);
+            pointer-events: none;
+        }
+        .piece1, .piece2 {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px #0002;
+            position: relative;
+            z-index: 1;
+            transition: box-shadow 0.2s;
+        }
+        .piece1 {
+            background: radial-gradient(circle at 60% 40%, #fff 70%, #e0e0e0 100%);
+            border: 4px solid #222;
+        }
+        .piece2 {
+            background: radial-gradient(circle at 60% 40%, #444 70%, #222 100%);
+            border: 4px solid #fff;
+        }
+        .captured-anim {
+            animation: capturePop 0.5s cubic-bezier(.7,-0.2,.7,1.5) forwards;
+            z-index: 10 !important;
+        }
+        @keyframes capturePop {
+            0% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
+            60% { transform: scale(1.25) rotate(-10deg); opacity: 1; filter: blur(0); }
+            80% { transform: scale(0.7) rotate(10deg); opacity: 0.7; filter: blur(2px); }
+            100% { transform: scale(0.1) rotate(30deg); opacity: 0; filter: blur(8px); }
+        }
+        #reset-btn {
+            display: block;
+            margin: 0 auto;
+            padding: 14px 38px;
+            background: linear-gradient(90deg, #ffe066 0%, #f7b801 100%);
+            color: #222;
+            border: none;
+            border-radius: 10px;
+            font-size: 19px;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: background 0.2s, color 0.2s;
+            box-shadow: 0 2px 8px #0001;
+        }
+        #reset-btn:hover {
+            background: linear-gradient(90deg, #f7b801 0%, #ffe066 100%);
+            color: #fff;
+        }
+        #info-panel {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+            padding: 28px 25px 25px 25px;
+            max-width: 350px;
+            min-width: 250px;
+            color: #222;
+            font-size: 1.09rem;
+            line-height: 1.5;
+        }
+        #info-panel h2 {
+            color: #8b5c2b;
+            margin-top: 0;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-family: 'Segoe UI Semibold', Arial, sans-serif;
+        }
+        #info-panel ul {
+            margin: 0 0 0 18px;
+            padding: 0;
+        }
+        #info-panel li {
+            margin-bottom: 8px;
+        }
+        #info-panel em {
+            color: #f7b801;
+            font-style: normal;
+            font-weight: 600;
+        }
+        #info-panel .howto {
+            background: #e0e7ef;
+            border-radius: 7px;
+            padding: 8px 14px;
+            margin: 12px 0 0 0;
+            font-size: 1.01rem;
+        }
+        @media (max-width: 1100px) {
+            #main-content {
+                flex-direction: column;
+                align-items: center;
+                gap: 32px;
+            }
+        }
+        @media (max-width: 600px) {
+            header {
+                padding: 18px 0 10px 0;
+                border-radius: 0 0 18px 18px;
+            }
+            #main-content {
+                gap: 18px;
+                margin-top: 18px;
+            }
+            #game-container, #info-panel {
+                min-width: unset;
+                max-width: 98vw;
+                padding: 12px 2vw;
+            }
+            #seega-board {
+                grid-template-columns: repeat(5, 48px);
+                grid-template-rows: repeat(5, 48px);
+                gap: 4px;
+            }
+            .cell {
+                width: 48px;
+                height: 48px;
+                font-size: 24px;
+            }
+            .piece1, .piece2 {
+                width: 32px;
+                height: 32px;
+                border-width: 2px;
+            }
+            .dot {
+                width: 10px;
+                height: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Seega</h1>
+    <p>Antik Mısır’dan gelen strateji oyunu</p>
+</header>
+<div id="main-content">
+    <div id="game-container">
+        <div id="winner-indicator"></div>
+        <div id="turn-indicator">Taş yerleştirme aşaması: Beyaz oyuncu başlar (2 taş)</div>
+        <div id="seega-board"></div>
+        <button id="reset-btn">Yeniden Başlat</button>
+    </div>
+    <div id="info-panel">
+        <h2>Seega Nedir?</h2>
+            <b>Seega</b>, kökeni <em>Antik Mısır</em>'a dayanan, iki oyunculu bir strateji oyunudur. 
+            5×5 karelik bir tahta üzerinde oynanır ve her oyuncunun 12 taşı vardır. 
+            <br><br>
+            <b>Tarihçe:</b> Seega, Antik Mısır'da oynanan ve günümüze kadar ulaşan bir masa oyunudur. 
+         <br></br>
+        <h2>Nasıl Oynanır?</h2>
+        <div class="howto">
+            <ul>
+                <li><b>1. Taş Yerleştirme:</b> Oyuncular sırayla <b>2’şer taş</b> koyar. Ortadaki kare boş bırakılır. Her oyuncunun 12 taşı vardır.</li>
+                <li><b>2. Hareket:</b> Tüm taşlar yerleştirildikten sonra, oyuncular taşlarını yatay veya dikey olarak bitişik boş hücreye hareket ettirir.</li>
+                <li><b>3. Taş Alma:</b> Rakip taş, iki taşınız arasında kalırsa (yatay veya dikey), o taşı alırsınız. Bir hamlede birden fazla taş alınabilir.</li>
+                <li><b>Kazanan:</b> Rakibin yalnızca 1 taşı kaldığında oyun biter ve diğer oyuncu kazanır.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<script>
+    // Seega: 5x5 board, 12 taş her oyuncuda, ortası boş başlar
+    const BOARD_SIZE = 5;
+    const PIECES_PER_PLAYER = 12;
+    const EMPTY = 0, PLAYER1 = 1, PLAYER2 = 2;
+    let board = [];
+    let phase = 1; // 1: taş yerleştirme, 2: hareket
+    let turn = PLAYER1;
+    let placed1 = 0, placed2 = 0;
+    let selected = null;
+    let captured1 = 0, captured2 = 0;
+    let possibleMoves = [];
+    let placeBuffer = []; // 2'li taş koymak için
+    let captureQueue = [];
+    let winner = null;
+
+    const boardDiv = document.getElementById('seega-board');
+    const turnDiv = document.getElementById('turn-indicator');
+    const winnerDiv = document.getElementById('winner-indicator');
+    const resetBtn = document.getElementById('reset-btn');
+
+    function initBoard() {
+        board = [];
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            let row = [];
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                row.push(EMPTY);
+            }
+            board.push(row);
+        }
+        // Ortadaki hücre boş kalır
+        board[2][2] = EMPTY;
+        phase = 1;
+        turn = PLAYER1;
+        placed1 = 0;
+        placed2 = 0;
+        selected = null;
+        captured1 = 0;
+        captured2 = 0;
+        possibleMoves = [];
+        placeBuffer = [];
+        captureQueue = [];
+        winner = null;
+        winnerDiv.style.display = "none";
+        render();
+    }
+
+    function render() {
+        boardDiv.innerHTML = '';
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                if (selected && selected[0] === r && selected[1] === c) {
+                    cell.classList.add('selected');
+                }
+                if (possibleMoves.some(([pr, pc]) => pr === r && pc === c)) {
+                    cell.classList.add('possible');
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    cell.appendChild(dot);
+                }
+                cell.dataset.row = r;
+                cell.dataset.col = c;
+                // Taş yerleştirme aşamasında, placeBuffer'daki taşları da göster
+                let showPiece = board[r][c];
+                if (phase === 1 && placeBuffer.some(([br, bc]) => br === r && bc === c)) {
+                    showPiece = turn;
+                }
+                if (showPiece === PLAYER1) {
+                    const piece = document.createElement('div');
+                    piece.className = 'piece1';
+                    cell.appendChild(piece);
+                } else if (showPiece === PLAYER2) {
+                    const piece = document.createElement('div');
+                    piece.className = 'piece2';
+                    cell.appendChild(piece);
+                }
+                cell.addEventListener('click', () => handleCellClick(r, c));
+                boardDiv.appendChild(cell);
+            }
+        }
+        if (winner) {
+            winnerDiv.style.display = "block";
+            if (winner === "Berabere") {
+                winnerDiv.textContent = "Berabere!";
+            } else {
+                winnerDiv.textContent = winner + " oyuncu kazandı!";
+            }
+        } else {
+            winnerDiv.style.display = "none";
+        }
+        if (phase === 1) {
+            let kalan = (turn === PLAYER1 ? PIECES_PER_PLAYER - placed1 : PIECES_PER_PLAYER - placed2);
+            let buf = placeBuffer.length;
+            turnDiv.textContent = `Taş yerleştirme aşaması: ${turn === PLAYER1 ? 'Beyaz' : 'Siyah'} oyuncu (${2-buf} taş)`;
+        } else {
+            turnDiv.textContent = `Taş hareket aşaması: ${turn === PLAYER1 ? 'Beyaz' : 'Siyah'} oyuncu | Beyaz: ${captured2} taş aldı, Siyah: ${captured1} taş aldı`;
+        }
+    // OYUNCU HAMLE YOKSA SIRA DEĞİŞTİR
+    if (phase === 2 && !winner) {
+        let hasMove = false;
+        outer: for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] === turn && getPossibleMoves(r, c).length > 0) {
+                    hasMove = true;
+                    break outer;
+                }
+            }
+        }
+        if (!hasMove) {
+            // Diğer oyuncuya sıra geçsin
+            let other = turn === PLAYER1 ? PLAYER2 : PLAYER1;
+            let otherHasMove = false;
+            outer2: for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === other && getPossibleMoves(r, c).length > 0) {
+                        otherHasMove = true;
+                        break outer2;
+                    }
+                }
+            }
+            if (otherHasMove) {
+                turn = other;
+                turnDiv.textContent += " | Hamle yok, sıra rakibe geçti!";
+                setTimeout(render, 900); // kısa gecikmeyle tekrar render
+            } else {
+                // İki oyuncu da oynayamıyor, oyun biter
+                winner = "Berabere";
+                showWinner();
+                winnerDiv.style.display = "block";
+            }
+        }
+    }
+}
+
+    function handleCellClick(r, c) {
+        if (winner) return;
+        if (phase === 1) {
+            // Taş yerleştirme (2'li veya son tek taş)
+            if (board[r][c] === EMPTY && !(r === 2 && c === 2) && !placeBuffer.some(([br, bc]) => br === r && bc === c)) {
+                placeBuffer.push([r, c]);
+                render(); // ilk taşı hemen göster
+                let kalan1 = PIECES_PER_PLAYER - placed1;
+                let kalan2 = PIECES_PER_PLAYER - placed2;
+                if ((turn === PLAYER1 && kalan1 <= 2 && placeBuffer.length === kalan1) ||
+                    (turn === PLAYER2 && kalan2 <= 2 && placeBuffer.length === kalan2)) {
+                    // Son elde kalan taş 1 ise, tek taş koyulmasına izin ver
+                    for (const [pr, pc] of placeBuffer) {
+                        board[pr][pc] = turn;
+                    }
+                    if (turn === PLAYER1) placed1 += placeBuffer.length;
+                    else placed2 += placeBuffer.length;
+                    placeBuffer = [];
+                    if (placed1 === PIECES_PER_PLAYER && placed2 === PIECES_PER_PLAYER) {
+                        phase = 2;
+                        turn = PLAYER1;
+                    } else {
+                        turn = turn === PLAYER1 ? PLAYER2 : PLAYER1;
+                    }
+                    render();
+                } else if (placeBuffer.length === 2) {
+                    for (const [pr, pc] of placeBuffer) {
+                        board[pr][pc] = turn;
+                    }
+                    if (turn === PLAYER1) placed1 += 2;
+                    else placed2 += 2;
+                    placeBuffer = [];
+                    turn = turn === PLAYER1 ? PLAYER2 : PLAYER1;
+                    render();
+                }
+            }
+        } else {
+            // Hareket aşaması
+            if (selected) {
+                // Eğer tıklanan yer olası hamlelerden biri ise taşı hareket ettir
+                if (possibleMoves.some(([pr, pc]) => pr === r && pc === c)) {
+                    const [sr, sc] = selected;
+                    board[r][c] = board[sr][sc];
+                    board[sr][sc] = EMPTY;
+                    selected = null;
+                    possibleMoves = [];
+                    // Capture animasyonlu
+                    let captured = getCaptured(r, c);
+                    if (captured.length > 0) {
+                        animateCapture(captured, () => {
+                            for (const [cr, cc] of captured) {
+                                if (turn === PLAYER1) captured1++;
+                                else captured2++;
+                                board[cr][cc] = EMPTY;
+                            }
+                            // Oyun bitti mi?
+                            if (isGameOver()) {
+                                showWinner();
+                                render();
+                                return;
+                            }
+                            turn = turn === PLAYER1 ? PLAYER2 : PLAYER1;
+                            render();
+                        });
+                    } else {
+                        // Oyun bitti mi?
+                        if (isGameOver()) {
+                            showWinner();
+                            render();
+                            return;
+                        }
+                        turn = turn === PLAYER1 ? PLAYER2 : PLAYER1;
+                        render();
+                    }
+                } else {
+                    selected = null;
+                    possibleMoves = [];
+                    render();
+                }
+            } else {
+                // Taşı seç
+                if (board[r][c] === turn) {
+                    selected = [r, c];
+                    possibleMoves = getPossibleMoves(r, c);
+                    render();
+                }
+            }
+        }
+    }
+
+    function getPossibleMoves(r, c) {
+        const moves = [];
+        const dirs = [
+            [0, 1], [1, 0], [0, -1], [-1, 0]
+        ];
+        for (const [dr, dc] of dirs) {
+            const nr = r + dr, nc = c + dc;
+            if (inBounds(nr, nc) && board[nr][nc] === EMPTY) {
+                moves.push([nr, nc]);
+            }
+        }
+        return moves;
+    }
+
+function getCaptured(r, c) {
+    // Yatay ve dikeyde rakip taşlar arasında kalan taşları döndür
+    const dirs = [
+        [0, 1], [1, 0], [0, -1], [-1, 0]
+    ];
+    let captured = [];
+    for (const [dr, dc] of dirs) {
+        const nr = r + dr, nc = c + dc;
+        const nnr = r + dr * 2, nnc = c + dc * 2;
+        // Orta noktadaki taş alınamaz
+        if (nr === 2 && nc === 2) continue;
+        if (
+            inBounds(nr, nc) && inBounds(nnr, nnc) &&
+            board[nr][nc] === (turn === PLAYER1 ? PLAYER2 : PLAYER1) &&
+            board[nnr][nnc] === turn
+        ) {
+            captured.push([nr, nc]);
+        }
+    }
+    return captured;
+}
+    function animateCapture(captured, callback) {
+        // captured: [[r, c], ...]
+        // 1. Tahtadaki ilgili taşlara animasyon class'ı ekle
+        const cells = Array.from(boardDiv.children);
+        for (const [r, c] of captured) {
+            const idx = r * BOARD_SIZE + c;
+            const cell = cells[idx];
+            if (cell) {
+                const piece = cell.querySelector('.piece1, .piece2');
+                if (piece) {
+                    piece.classList.add('captured-anim');
+                }
+            }
+        }
+        // 2. Animasyon bitince callback
+        setTimeout(callback, 520);
+    }
+
+    function inBounds(r, c) {
+        return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+    }
+
+    function isGameOver() {
+        // Bir oyuncunun SADECE 1 taşı kaldıysa oyun biter
+        let p1 = 0, p2 = 0;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] === PLAYER1) p1++;
+                if (board[r][c] === PLAYER2) p2++;
+            }
+        }
+        return (p1 === 1 || p2 === 1);
+    }
+
+    function showWinner() {
+        let p1 = 0, p2 = 0;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c] === PLAYER1) p1++;
+                if (board[r][c] === PLAYER2) p2++;
+            }
+        }
+        if (p1 === 1) {
+            winner = "Siyah";
+        } else if (p2 === 1) {
+            winner = "Beyaz";
+        } else {
+            winner = "Berabere";
+        }
+    }
+
+    resetBtn.addEventListener('click', () => {
+        initBoard();
+        // reset AI panel state if exists
+        if (window._seeGAI) {
+            window._seeGAI.enabled = false;
+            const info = document.getElementById('_gai_info');
+            if (info) info.textContent = '';
+        }
+    });
+
+    // Başlat
+    initBoard();
+
+    /* ---------------------------
+       AI ENTEGRASYONU (Geliştirilmiş)
+       --------------------------- */
+    (function initAI() {
+        // global AI kontrol değişkenleri
+        window._seeGAI = {
+        
+            enabled: false,
+            cpuPlayer: 2, // default CPU siyah (PLAYER2)
+            level: 'kolay', // 'kolay' | 'orta' | 'zor'
+            busy: false // AI meşgulken tekrar giriş engelleme
+        };
+
+        // UI ekle
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer) {
+            const panel = document.createElement('div');
+            panel.style.display = 'flex';
+            panel.style.gap = '8px';
+            panel.style.alignItems = 'center';
+            panel.style.marginBottom = '12px';
+
+            const modeSel = document.createElement('select');
+            modeSel.innerHTML =
+                '<option value="hth">İnsan vs İnsan</option>' +
+                '<option value="cpu2">İnsan vs Bilgisayar (Bilgisayar Siyah)</option>' +
+                '<option value="cpu1">Bilgisayar vs İnsan (Bilgisayar Beyaz)</option>';
+            const levelSel = document.createElement('select');
+            levelSel.innerHTML =
+                '<option value="kolay">Kolay</option>' +
+                '<option value="orta">Orta</option>' +
+                '<option value="zor">Zor</option>';
+
+            const toggleBtn = document.createElement('button');
+            toggleBtn.textContent = 'Bilgisayara Karşı Oyna';
+            toggleBtn.style.padding = '8px 12px';
+            toggleBtn.style.cursor = 'pointer';
+
+            const info = document.createElement('div');
+            info.id = '_gai_info';
+            info.style.fontSize = '0.95rem';
+            info.style.color = '#333';
+            info.textContent = '';
+
+            panel.appendChild(modeSel);
+            panel.appendChild(levelSel);
+            panel.appendChild(toggleBtn);
+            panel.appendChild(info);
+            gameContainer.insertBefore(panel, gameContainer.firstChild);
+
+            toggleBtn.addEventListener('click', () => {
+                const mode = modeSel.value;
+                window._seeGAI.enabled = mode !== 'hth';
+                window._seeGAI.cpuPlayer = mode === 'cpu1' ? PLAYER1 : PLAYER2;
+                window._seeGAI.level = levelSel.value;
+                info.textContent = window._seeGAI.enabled
+                    ? `CPU: ${window._seeGAI.cpuPlayer === PLAYER1 ? 'Beyaz' : 'Siyah'} | Seviye: ${window._seeGAI.level}`
+                    : '';
+                // Yeniden başlatmayı öner (yerleştirme aşaması baştan düzgün olsun)
+                initBoard();
+                render();
+            });
+        }
+
+        // Yardımcıler
+        function cloneBoard(b) {
+            return b.map(row => row.slice());
+        }
+
+        function countPieces(b, p) {
+            let cnt = 0;
+            for (let r=0;r<BOARD_SIZE;r++) for (let c=0;c<BOARD_SIZE;c++) if (b[r][c]===p) cnt++;
+            return cnt;
+        }
+
+        function getAllMovesFor(b, player) {
+            const moves = [];
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (b[r][c] === player) {
+                        const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+                        for (const [dr,dc] of dirs) {
+                            const nr = r+dr, nc = c+dc;
+                            if (nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE && b[nr][nc] === EMPTY) {
+                                moves.push({from:[r,c], to:[nr,nc]});
+                            }
+                        }
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function simulatedCapturedOnBoard(b, player, r, c) {
+            const opponent = player === PLAYER1 ? PLAYER2 : PLAYER1;
+            const caps = [];
+            const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+            for (const [dr,dc] of dirs) {
+                const nr = r+dr, nc = c+dc;
+                const nnr = r+2*dr, nnc = c+2*dc;
+                if (nr===2 && nc===2) continue; // orta nokta alınamaz
+                if (nr>=0 && nr<BOARD_SIZE && nc>=0 && nc<BOARD_SIZE &&
+                        nnr>=0 && nnr<BOARD_SIZE && nnc>=0 && nnc<BOARD_SIZE) {
+                    if (b[nr][nc] === opponent && b[nnr][nnc] === player) {
+                        caps.push([nr,nc]);
+                    }
+                }
+            }
+            return caps;
+        }
+
+        // AI döngüsü: sürekli ama re-entrance engelli
+        function scheduleLoop() {
+            setTimeout(async () => {
+                try {
+                    await tryMakeAIMove();
+                } catch (e) {
+                    console.error(e);
+                }
+                scheduleLoop();
+            }, 380);
+        }
+        scheduleLoop();
+
+        async function tryMakeAIMove() {
+            if (!window._seeGAI || !window._seeGAI.enabled) return;
+            if (window._seeGAI.busy) return;
+            if (typeof turn === 'undefined' || typeof phase === 'undefined' || winner) return;
+            const cpu = window._seeGAI.cpuPlayer;
+            if (turn !== cpu) return;
+
+            window._seeGAI.busy = true;
+            try {
+                if (phase === 1) {
+                    await aiPlace(cpu);
+                } else {
+                    await aiMove(cpu, window._seeGAI.level);
+                }
+            } finally {
+                window._seeGAI.busy = false;
+            }
+        }
+
+        // AI: yerleştirme (phase 1)
+        async function aiPlace(cpuPlayer) {
+            // CPU'nun kaç taşı kaldı?
+            const remaining = cpuPlayer === PLAYER1 ? (PIECES_PER_PLAYER - placed1) : (PIECES_PER_PLAYER - placed2);
+            if (remaining <= 0) return;
+
+            // boş hücreler (orta hariç)
+            const empties = [];
+            for (let r=0;r<BOARD_SIZE;r++){
+                for (let c=0;c<BOARD_SIZE;c++){
+                    if (board[r][c] === EMPTY && !(r===2 && c===2)) empties.push([r,c]);
+                }
+            }
+            if (empties.length === 0) return;
+
+            // Kolay strateji: rastgele pozisyon(lar)
+            const chooseCount = remaining >= 2 ? 2 : 1;
+            const chosen = [];
+            const copy = empties.slice();
+            while (chosen.length < chooseCount && copy.length) {
+                const idx = Math.floor(Math.random()*copy.length);
+                chosen.push(copy.splice(idx,1)[0]);
+            }
+
+            // AI yerleştirmeyi handleCellClick mantığıyla uygulasın (placeBuffer pekişsin)
+            for (const [r,c] of chosen) {
+                // Eğer sıranın değiştiği bir durum oluşursa dur
+                if (turn !== cpuPlayer || phase !== 1) break;
+                handleCellClick(r,c);
+                // küçük bir bekleme ile daha doğal görünsün ve render'in tamamlanması sağlansın
+                await new Promise(res => setTimeout(res, 220));
+            }
+        }
+
+        // AI: hareket aşaması
+        async function aiMove(cpuPlayer, level) {
+            const moves = getAllMovesFor(board, cpuPlayer);
+            if (!moves.length) {
+                return;
+            }
+
+            let chosen = null;
+
+            if (level === 'kolay') {
+                chosen = moves[Math.floor(Math.random()*moves.length)];
+            } else if (level === 'orta') {
+                // en çok anlık yakalama yapan hamleyi seç
+                let best = -1;
+                const candidates = [];
+                for (const m of moves) {
+                    const b2 = cloneBoard(board);
+                    const [fr,fc] = m.from, [tr,tc] = m.to;
+                    b2[tr][tc] = b2[fr][fc];
+                    b2[fr][fc] = EMPTY;
+                    const caps = simulatedCapturedOnBoard(b2, cpuPlayer, tr, tc).length;
+                    if (caps > best) {
+                        best = caps;
+                        candidates.length = 0;
+                        candidates.push(m);
+                    } else if (caps === best) candidates.push(m);
+                }
+                chosen = candidates[Math.floor(Math.random()*candidates.length)];
+            } else {
+                // 'zor' : basit 1-ply minimax tarzı (rakibin en iyi cevabını hesaba katarak)
+                const opponent = cpuPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
+                let bestScore = -Infinity;
+                let bestMoves = [];
+                for (const m of moves) {
+                    const b2 = cloneBoard(board);
+                    const [fr,fc] = m.from, [tr,tc] = m.to;
+                    b2[tr][tc] = b2[fr][fc];
+                    b2[fr][fc] = EMPTY;
+                    const myCaps = simulatedCapturedOnBoard(b2, cpuPlayer, tr, tc).length;
+                    // uygula captureleri
+                    const myCapsList = simulatedCapturedOnBoard(b2, cpuPlayer, tr, tc);
+                    for (const [cr,cc] of myCapsList) b2[cr][cc] = EMPTY;
+                    // rakibin en iyi cevapunu bul
+                    const oppMoves = getAllMovesFor(b2, opponent);
+                    let worstAfter = Infinity;
+                    if (oppMoves.length === 0) {
+                        worstAfter = -1000;
+                    } else {
+                        for (const om of oppMoves) {
+                            const b3 = cloneBoard(b2);
+                            const [ofr,ofc] = om.from, [otr,otc] = om.to;
+                            b3[otr][otc] = b3[ofr][ofc];
+                            b3[ofr][ofc] = EMPTY;
+                            const oppCaps = simulatedCapturedOnBoard(b3, opponent, otr, otc).length;
+                            const myCount = countPieces(b3, cpuPlayer);
+                            const oppCount = countPieces(b3, opponent);
+                            const score = (myCount - oppCount) * 10 + (myCaps - oppCaps)*8;
+                            if (score < worstAfter) worstAfter = score;
+                        }
+                    }
+                    const finalScore = worstAfter === Infinity ? (myCaps*8) : worstAfter;
+                    if (finalScore > bestScore) {
+                        bestScore = finalScore;
+                        bestMoves = [m];
+                    } else if (finalScore === bestScore) bestMoves.push(m);
+                }
+                chosen = bestMoves[Math.floor(Math.random()*bestMoves.length)];
+            }
+
+            if (!chosen) return;
+
+            // Küçük bekleme yap (insana benzerlik & render tamamlanması)
+            await new Promise(res => setTimeout(res, 300));
+
+            // Hamleyi uygula: aynı mantıkla handleCellClick sonrası yapılan işlemlere benzer
+            const [sr, sc] = chosen.from;
+            const [tr, tc] = chosen.to;
+            // bir güvenlik: eğer kaybedilmişse veya hücre beklenmedik değiştiyse iptal
+            if (board[sr][sc] !== cpuPlayer || board[tr][tc] !== EMPTY) return;
+
+            // taşı hareket ettir
+            board[tr][tc] = board[sr][sc];
+            board[sr][sc] = EMPTY;
+            // capture animasyonunu tetikle
+            const prevTurn = turn;
+            turn = cpuPlayer; // getCaptured kullanımı için doğru turn
+            const captured = getCaptured(tr, tc);
+            if (captured.length > 0) {
+                await new Promise(res => {
+                    animateCapture(captured, () => {
+                        for (const [cr, cc] of captured) {
+                            if (cpuPlayer === PLAYER1) captured1++; else captured2++;
+                            board[cr][cc] = EMPTY;
+                        }
+                        // oyun bitti mi?
+                        if (isGameOver()) {
+                            showWinner();
+                            render();
+                            res();
+                            return;
+                        }
+                        turn = cpuPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
+                        render();
+                        res();
+                    });
+                });
+            } else {
+                // normal geçiş
+                if (isGameOver()) {
+                    showWinner();
+                    render();
+                    turn = prevTurn;
+                    return;
+                }
+                turn = cpuPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
+                render();
+            }
+        }
+
+    })();
+
+</script>
+</body>
+</html>
